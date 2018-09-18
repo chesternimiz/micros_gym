@@ -3,7 +3,6 @@ import gym.spaces as spaces
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 
 
 class FlockingEnv(gym.Env):
@@ -16,9 +15,9 @@ class FlockingEnv(gym.Env):
         self.state_vel = None
         self.state = np.zeros((num, 2, 2), dtype=np.float32)
         self.delta_t = 0.1
+        plt.ion()
         self.fig = plt.figure().add_subplot(1, 1, 1)
         self.fig.axis("equal")
-        plt.ion()
 
     def reset(self):
         self.state_pos = np.random.uniform(low=-50, high=50, size=(self.size, 2))
@@ -44,42 +43,27 @@ class FlockingEnv(gym.Env):
     def simple_plot(self):
 
         # 打开交互模式
-        # plt.ion()
-
-        # 循环
-        for index in range(0,1):
-            # 清除原有图像
-            # self.fig.cla()
-
-            # 设定标题等
-            # self.fig.title("test")
-            # plt.grid(True)
-
-            # 生成测试数据
-            x_index = self.state[:, 0, 0]
-            y_index = self.state[:, 0, 1]
-
-            # 画散点图
-            self.fig.scatter(x_index, y_index, marker="o")
-
-            # 暂停
-            plt.pause(0.1)
-
-        # 关闭交互模式
-        # plt.ioff()
-
-        # 显示图形
-        plt.show()
+        plt.ion()
+        self.fig.cla()
+        x_index = self.state[:, 0, 0]
+        y_index = self.state[:, 0, 1]
+        self.fig.scatter(x_index, y_index, marker=".")
+        for i in range(0 ,self.size):
+            self.fig.annotate("", xy=(x_index[i]+self.state[i, 1, 0], y_index[i]+self.state[i, 1, 1]),
+                              xytext=(x_index[i], y_index[i]), arrowprops=dict(arrowstyle="->"))
+        plt.pause(0.1)
 
     def render(self, mode='human'):
         self.simple_plot()
 
 
 if __name__ == '__main__':
+
     env = FlockingEnv(50)
     env.reset()
     env.render()
-    for i in range(0, 1000):
+    for i in range(0, 100):
         env.step(np.array([1, 0.5]))
         env.render()
+    plt.waitforbuttonpress()
 
