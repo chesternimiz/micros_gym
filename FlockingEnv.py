@@ -22,20 +22,21 @@ class FlockingEnv(gym.Env):
     def reset(self):
         self.state_pos = np.random.uniform(low=-50, high=50, size=(self.size, 2))
         self.state_vel = np.random.uniform(low=-5, high=5, size=(self.size, 2))
-        for i in range(0,self.size):
+        for i in range(0, self.size):
             self.state[i][0] = self.state_pos[i]
             self.state[i][1] = self.state_vel[i]
         return np.array(self.state)
 
-    def update_vel(self,acc):
-        for i in range(0,self.size):
-            self.state[i][1] += acc*self.delta_t
+    def update_vel(self, acc):
+        self.state[:, 1] += acc*self.delta_t
+        #for i in range(0, self.size):
+        #    self.state[i][1] += acc*self.delta_t
 
     def update_pos(self):
-        for i in range(0,self.size):
+        for i in range(0, self.size):
             self.state[i][0] += self.state[i][1]*self.delta_t
 
-    def step(self, action): # action = acc
+    def step(self, action):  # action = acc
         self.update_vel(action)
         self.update_pos()
         return np.array(self.state)
@@ -56,14 +57,21 @@ class FlockingEnv(gym.Env):
     def render(self, mode='human'):
         self.simple_plot()
 
+    def wait_button(self):
+        plt.waitforbuttonpress()
+
 
 if __name__ == '__main__':
 
     env = FlockingEnv(50)
+    action = np.zeros((50, 2), dtype=np.float32)
+    for i in range(0,50):
+        action[i][0] = 1
+        action[i][1] = 0.5
     env.reset()
     env.render()
     for i in range(0, 100):
-        env.step(np.array([1, 0.5]))
+        env.step(np.array(action))
         env.render()
-    plt.waitforbuttonpress()
+    env.wait_button()
 

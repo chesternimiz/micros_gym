@@ -1,6 +1,7 @@
-import FlockingEnv
+import FlockingEnv as fe
 import math
 import numpy as np
+
 
 class OSAgent:
     def __init__(self, num, r=25, d=20, h=0.2, a=5, b=5, c1=0.05, c2=0.3, dim=2):
@@ -16,10 +17,13 @@ class OSAgent:
         self.C1 = c1
         self.C2 = c2
         self.dim = dim
+        self.lp = np.array([0.0, 0.0])
+        self.lv = np.array([0.0, 0.0])
 
-    def act(self,states):
+    def act(self, states):
         self.state = states
         self.calculate_neighbors()
+        return 0.9*self.f_g()+self.f_d()+0.5*self.f_r()
 
     def get_dist2(self,i,j):
         delta_x = self.state[i][0][0]-self.state[j][0][0]
@@ -91,6 +95,31 @@ class OSAgent:
                 q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) > self.R:
                     continue
-                
+                p_ij = self.state[j][1] - self.state[j][1]
+                re = re + self.a_ij(q_ij)*p_ij
+        return re
 
+    def a_ij(self, q_ij):
+        r_alpha = self.segma_norm(np.array([self.R, 0]))  # !
+        re = self.rho(self.segma_norm(q_ij)/r_alpha)
+        return re
+
+    def f_r(self):
+        re = np.zeros((self.size, self.dim), dtype=np.float32)
+        for i in range(0, self.size):
+            re[i] = -self.C1*(self.state[i][0]-self.lp)-self.C2*(self.state[i][1]-self.lv)
+        return re
+
+
+if __name__ == '__main__':
+    env = fe.FlockingEnv(50)
+    agent = OSAgent(50)
+    state = env.reset()
+    env.render()
+    for i in range(0, 10000):
+        action = agent.act(states=state)
+        state = env.step(action)
+        if i % 10 == 0:
+            env.render()
+    env.wait_button()
 
