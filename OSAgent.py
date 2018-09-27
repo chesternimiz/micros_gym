@@ -23,9 +23,12 @@ class OSAgent:
     def act(self, states):
         self.state = states
         self.calculate_neighbors()
+        # print("f_g:", self.f_g())
+        # print("f_d:", self.f_d())
+        # print("f_r:", self.f_r())
         return 0.9*self.f_g()+self.f_d()+0.5*self.f_r()
 
-    def get_dist2(self,i,j):
+    def get_dist2(self, i, j):
         delta_x = self.state[i][0][0]-self.state[j][0][0]
         delta_y = self.state[i][0][1] - self.state[j][0][1]
         return delta_x*delta_x+delta_y*delta_y
@@ -51,9 +54,11 @@ class OSAgent:
                     continue
                 q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) > self.R:
+                # if self.get_dist2(i, j) > self.R*self.R:
                     continue
                 n_ij = self.segma_epsilon(q_ij)
-                re = re + self.phi_alpha(self.segma_norm(q_ij))*n_ij
+                # print("n_ij", n_ij)
+                re[i] = re[i] + self.phi_alpha(self.segma_norm(q_ij))*n_ij
         return re
 
     def segma_epsilon(self, q_ij):
@@ -95,8 +100,8 @@ class OSAgent:
                 q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) > self.R:
                     continue
-                p_ij = self.state[j][1] - self.state[j][1]
-                re = re + self.a_ij(q_ij)*p_ij
+                p_ij = self.state[j][1] - self.state[i][1]
+                re[i] = re[i] + self.a_ij(q_ij)*p_ij
         return re
 
     def a_ij(self, q_ij):
@@ -110,16 +115,26 @@ class OSAgent:
             re[i] = -self.C1*(self.state[i][0]-self.lp)-self.C2*(self.state[i][1]-self.lv)
         return re
 
+    def set_vl(self, lp, lv):
+        self.lp = lp
+        self.lv = lv
+
+    def step_vl(self, delta_t):
+        self.lp += self.lv * delta_t
+
 
 if __name__ == '__main__':
     env = fe.FlockingEnv(50)
     agent = OSAgent(50)
+    agent.set_vl(lp=np.array([0.0, 0.0]), lv=np.array([1., 1.]))
     state = env.reset()
     env.render()
-    for i in range(0, 10000):
+    for ii in range(0, 1000):
         action = agent.act(states=state)
+        # action = np.zeros((2, 2), dtype=np.float32)
         state = env.step(action)
-        if i % 10 == 0:
+        agent.step_vl(delta_t=env.delta_t)
+        if ii % 2 == 0:
             env.render()
     env.wait_button()
 
