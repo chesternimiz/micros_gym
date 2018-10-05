@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 
 
 class FlockingEnv(gym.Env):
-    def __init__(self, num, r=25):
+    def __init__(self, num, r=25, speedup=1):
         self.size = num
         self.R = r
+        self.speedup = speedup
         self.action_space = \
             spaces.Box(low=-1000, high=1000, shape=[num, 2], dtype=np.float32)
         self.observation_space = spaces.Box(low=-1000, high=1000, shape=[num, 2, 2], dtype=np.float32)
@@ -59,7 +60,7 @@ class FlockingEnv(gym.Env):
                     self.fig.annotate("", xy=(x_index[i], y_index[i]),
                                       xytext=(x_index[j], y_index[j]), arrowprops=dict(arrowstyle="-"))
 
-        plt.pause(0.1)
+        plt.pause(0.1/self.speedup)
 
     def render(self, mode='human'):
         self.simple_plot()
