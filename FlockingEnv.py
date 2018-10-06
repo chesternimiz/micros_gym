@@ -7,9 +7,10 @@ import matplotlib.pyplot as plt
 
 
 class FlockingEnv(gym.Env):
-    def __init__(self, num, r=25, speedup=1):
+    def __init__(self, num, r=25, speedup=1, col_dist=0.1):
         self.size = num
         self.R = r
+        self.col_dist = col_dist
         self.speedup = speedup
         self.action_space = \
             spaces.Box(low=-1000, high=1000, shape=[num, 2], dtype=np.float32)
@@ -30,6 +31,16 @@ class FlockingEnv(gym.Env):
             self.state[i][1] = self.state_vel[i]
         return np.array(self.state)
 
+    def reset_mul(self):
+        self.reset()
+        observation = np.zeros((self.size,self.size, 2, 2),dtype=np.float32)
+        for i in range(0,self.size):
+            for j in range(0,self.size):
+                q_ij = observation[j][0] - observation[i][0]
+                if np.linalg.norm(q_ij) <= self.R:
+                    observation[i][j] = self.state[j]
+        return observation
+
     def update_vel(self, acc):
         self.state[:, 1] += acc*self.delta_t
         #for i in range(0, self.size):
@@ -43,6 +54,17 @@ class FlockingEnv(gym.Env):
         self.update_vel(action)
         self.update_pos()
         return np.array(self.state)
+
+    def step_mul(self, action):
+        self.step(action)
+        observation = np.zeros((self.size, self.size, 2, 2),dtype=np.float32)
+        for i in range(0, self.size):
+            for j in range(0, self.size):
+                q_ij = observation[j][0] - observation[i][0]
+                if np.linalg.norm(q_ij) <= self.R:
+                    observation[i][j] = self.state[j]
+        reward = np.zeros(self.size,dtype=np.float32)
+        return observation
 
     def simple_plot(self):
 

@@ -1,60 +1,60 @@
 import numpy as np
 import gym
+import FlockingEnv
 
 from ddpg_agent import DDPGAgent, MINI_BATCH_SIZE
 from ou_noise import OUNoise
 
-# Select aigym envrironment name.
-# You have to select env whose state and action spaces are continuous.
-ENV_NAME = "InvertedPendulum-v2"
 
 # parameters
 episodes_num = 20000
 is_movie_on = True
+size = 50
+dim = 2
+steps_limit = 1000
 
 def main():
     # Instanciate specified environment.
-    env = gym.make(ENV_NAME)
-
-    # Confirm that state and action spaces are continuous
-    assert isinstance(env.observation_space, gym.spaces.Box), "State space must be continuous!"
-    assert isinstance(env.action_space, gym.spaces.Box), "Action space must be continuous!"
+    env = FlockingEnv(size)
 
     # Get environment specs
-    num_states = env.observation_space.shape[0]
-    num_actions = env.action_space.shape[0]
-    steps_limit = env.spec.timestep_limit
+    num_states = size * dim * 2
+    num_actions = size *dim
 
     # Print specs
-    print("-----------Env specs (%s)------------" % ENV_NAME)
     print("Number of states: %d" % num_states)
     print("Number of actions: %d" % num_actions)
-    print("Limit of steps per episode: %d" % steps_limit)
     print("-----------------------------------------")
 
     # Instanciate reinforcement learning agent which contains Actor/Critic DNN.
-    agent = DDPGAgent(env)
+    #agents =[]
+    #for i in range(0,size):
+    agent = DDPGAgent(ob_shape=num_states, ac_shape=dim)
+    #    agents.append(agent)
     # Exploration noise generator which uses Ornstein-Uhlenbeck process.
-    noise = OUNoise(num_actions)
+    noise = OUNoise(dim)
 
     for i in range(episodes_num):
         print("--------Episode %d--------" % i)
         reward_per_episode = 0
-        observation = env.reset()
+        observation = env.reset_mul()
 
         for j in range(steps_limit):
             if is_movie_on: env.render()
 
             # Select action off-policy
             state = observation
-            action = agent.feed_forward_actor(np.reshape(state, [1, num_states]))
-            action = action[0] + noise.generate()
+            action = np.zeros((size,dim),dtype = np.float32)
+            # get individual ob states here
+            for i in range(0, size):
+                ac = agent.feed_forward_actor(np.reshape(state[i], [1, num_states]))
+                action[i]=ac + noise.generate()
 
             # Throw action to environment
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, info = env.step_mul(action)
 
-            # For replay buffer. (s_t, a_t, s_t+1, r)
-            agent.add_experience(state, action, observation, reward, done)
+            for i in range(0,size):
+                agent.add_experience(state[i], action[i], observation[i], reward[i], done)
 
             # Train actor/critic network
             if len(agent.replay_buffer) > MINI_BATCH_SIZE: agent.train()

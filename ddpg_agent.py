@@ -11,11 +11,11 @@ MINI_BATCH_SIZE = 128
 GAMMA = 0.99
 
 class DDPGAgent:
-    def __init__(self, env):
-        self.num_states = env.observation_space.shape[0]
-        self.num_actions = env.action_space.shape[0]
-        self.action_max = env.action_space.high
-        self.action_min = env.action_space.low
+    def __init__(self, ob_shape,ac_shape,ac_max=1000.0,ac_min=-1000.0):
+        self.num_states = ob_shape
+        self.num_actions = ac_shape
+        self.action_max = ac_max
+        self.action_min = ac_min
 
         self.replay_buffer = deque()
 

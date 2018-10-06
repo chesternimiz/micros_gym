@@ -134,6 +134,7 @@ if __name__ == '__main__':
         # action = np.zeros((2, 2), dtype=np.float32)
         state = env.step(action)
         agent.step_vl(delta_t=env.delta_t)
-        env.render()
+        if ii % 100 == 0:
+            env.render()
     env.wait_button()
 
