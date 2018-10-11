@@ -22,12 +22,13 @@ class OSReward:
         self.r_alpha = self.segma_norm(np.array([self.R, 0]))
         self.potential_step=0.1
 
+
     def calculate_potential(self):
         start = 0
         end = int(self.r_alpha/self.potential_step)
         while start <= end:
-            pf = self.phi_alpha(start)
-            print (start,pf)
+            pf = self.phi_alpha(start*self.potential_step)
+            # print (start,pf)
             potential_force.append(pf)
             potential.append(0.0)
             start += 1
@@ -105,7 +106,7 @@ class OSReward:
         return z / math.sqrt(1+z*z)
 
 class FlockingEnv(gym.Env):
-    def __init__(self, num, r=25, speedup=1, col_dist=0.1):
+    def __init__(self, num, r=25, speedup=1, col_dist=0.1, dynamic="second"):
         self.size = num
         self.R = r
         self.col_dist = col_dist
@@ -124,6 +125,8 @@ class FlockingEnv(gym.Env):
         self.vlq=np.array([100.,100.])
         self.vlp=np.array([1.,1.])
         self.osr.calculate_potential()
+        self.dynamic = dynamic
+        self.last_reward = None
 
     def reset(self):
         self.state_pos = np.random.uniform(low=0, high=200, size=(self.size, 2))
@@ -143,10 +146,14 @@ class FlockingEnv(gym.Env):
                     observation[i][j] = self.state[j]
             observation[i][self.size][0] = self.vlq
             observation[i][self.size][1] = self.vlp
+        self.last_reward = self.get_reward()
         return observation
 
     def update_vel(self, acc):
-        self.state[:, 1] += acc*self.delta_t
+        if self.dynamic == "second":
+            self.state[:, 1] += acc*self.delta_t
+        else:
+            self.state[:,1] = acc
         #for i in range(0, self.size):
         #    self.state[i][1] += acc*self.delta_t
 
@@ -186,6 +193,7 @@ class FlockingEnv(gym.Env):
                     observation[i][j] = self.state[j]
             observation[i][self.size][0] = self.vlq
             observation[i][self.size][1] = self.vlp
+        '''
         p_r = np.zeros(self.size, np.float32)
         c_r = np.zeros(self.size, np.float32)
         v_r = np.zeros(self.size, np.float32)
@@ -199,10 +207,30 @@ class FlockingEnv(gym.Env):
             q = self.state[i][0] - self.vlq
             p = self.state[i][0] - self.vlp
             v_r[i] = self.osr.vl_reward(p, q)
-        reward = p_r+c_r+v_r
+        '''
+        new_reward = self.get_reward()
+        reward = new_reward - self.last_reward
+        self.last_reward = new_reward
         # print(p_r.sum(), c_r.sum(), v_r.sum(), reward.sum())
-        info="not implemented info"
+        info=new_reward.sum()
         return observation,reward,False,info
+
+    def get_reward(self):
+        p_r = np.zeros(self.size, np.float32)
+        c_r = np.zeros(self.size, np.float32)
+        v_r = np.zeros(self.size, np.float32)
+        for i in range(0, self.size):
+            for j in range(0, self.size):
+                q_ij = self.state[j][0] - self.state[i][0]
+                p_r[i] += self.osr.potential_reward(q_ij)
+                if np.linalg.norm(q_ij) <= self.R:
+                    p_ij = self.state[j][1] - self.state[i][1]
+                    c_r[i] += self.osr.consensus_reward(p_ij)
+            q = self.state[i][0] - self.vlq
+            p = self.state[i][0] - self.vlp
+            v_r[i] = self.osr.vl_reward(p, q)
+        reward = p_r + c_r + v_r
+        return reward
 
     def simple_plot(self):
 

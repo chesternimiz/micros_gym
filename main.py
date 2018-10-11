@@ -15,7 +15,7 @@ steps_limit = 1000
 
 def main():
     # Instanciate specified environment.
-    env = fe.FlockingEnv(size1)
+    env = fe.FlockingEnv(size1,dynamic="first")
 
     # Get environment specs
     num_states = (size1+1) * dim * 2
@@ -63,7 +63,7 @@ def main():
             reward_per_episode = reward.sum()
 
             if j % 100 == 0:
-                print(j,"step finished. reward=",reward_per_episode)
+                print(j,"step finished. reward=",reward_per_episode,"info=",info)
             if (done or j == steps_limit -1):
                 print("Steps count: %d" % j)
                 print("Total reward: %d" % reward_per_episode)

@@ -6,8 +6,8 @@ from critic_net import CriticNet
 from actor_net import ActorNet
 
 # parameters
-REPLAY_BUFFER_SIZE = 10000
-MINI_BATCH_SIZE = 128
+REPLAY_BUFFER_SIZE = 100000 #10000
+MINI_BATCH_SIZE = 1000 #128
 GAMMA = 0.99
 
 class DDPGAgent:
