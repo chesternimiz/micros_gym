@@ -10,6 +10,8 @@ class OUNoise:
 
         self.reset()
 
+
+
     def generate(self):
         #x = self.state
         #dx = self.theta * (self.mu - x) + self.sigma * np.random.randn(len(x))

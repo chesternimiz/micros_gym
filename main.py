@@ -1,6 +1,6 @@
 import numpy as np
 import gym
-import FlockingEnv
+import FlockingEnv as fe
 
 from ddpg_agent import DDPGAgent, MINI_BATCH_SIZE
 from ou_noise import OUNoise
@@ -8,18 +8,18 @@ from ou_noise import OUNoise
 
 # parameters
 episodes_num = 20000
-is_movie_on = True
-size = 50
+is_movie_on = False
+size1 = 50
 dim = 2
 steps_limit = 1000
 
 def main():
     # Instanciate specified environment.
-    env = FlockingEnv(size)
+    env = fe.FlockingEnv(size1)
 
     # Get environment specs
-    num_states = size * dim * 2
-    num_actions = size *dim
+    num_states = (size1+1) * dim * 2
+    num_actions = size1 *dim
 
     # Print specs
     print("Number of states: %d" % num_states)
@@ -44,27 +44,31 @@ def main():
 
             # Select action off-policy
             state = observation
-            action = np.zeros((size,dim),dtype = np.float32)
+            action = np.zeros((size1,dim),dtype = np.float32)
             # get individual ob states here
-            for i in range(0, size):
-                ac = agent.feed_forward_actor(np.reshape(state[i], [1, num_states]))
-                action[i]=ac + noise.generate()
+            for k in range(0, size1):
+                ac = agent.feed_forward_actor(np.reshape(state[k], [1, num_states]))
+                action[k]=ac + noise.generate()
 
             # Throw action to environment
             observation, reward, done, info = env.step_mul(action)
 
-            for i in range(0,size):
-                agent.add_experience(state[i], action[i], observation[i], reward[i], done)
+            for k in range(0,size1):
+                agent.add_experience(np.reshape(state[k], [num_states]), action[k],
+                                                np.reshape(observation[k], [ num_states]), reward[k], done)
 
             # Train actor/critic network
             if len(agent.replay_buffer) > MINI_BATCH_SIZE: agent.train()
 
-            reward_per_episode += reward
+            reward_per_episode = reward.sum()
 
+            if j % 100 == 0:
+                print(j,"step finished. reward=",reward_per_episode)
             if (done or j == steps_limit -1):
                 print("Steps count: %d" % j)
                 print("Total reward: %d" % reward_per_episode)
 
+                env.render()
                 #noise.reset()
 
                 with open("reward_log.csv", "a") as f:
