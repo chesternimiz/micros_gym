@@ -143,10 +143,13 @@ class FlockingEnv(gym.Env):
             for j in range(0,self.size):
                 q_ij = observation[j][0] - observation[i][0]
                 if np.linalg.norm(q_ij) <= self.R:
-                    observation[i][j] = self.state[j]
-            observation[i][self.size][0] = self.vlq
-            observation[i][self.size][1] = self.vlp
+                    # observation[i][j] = self.state[j] !
+                    observation[i][j] = self.state[j]-self.state[i]
+            observation[i][self.size][0] = self.vlq-self.state[i][0]
+            observation[i][self.size][1] = self.vlp-self.state[i][1]
         self.last_reward = self.get_reward()
+        self.vlq = np.array([100., 100.])
+        print("reset vl q=",self.vlq,"p=",self.vlp)
         return observation
 
     def update_vel(self, acc):
@@ -190,9 +193,10 @@ class FlockingEnv(gym.Env):
             for j in range(0, self.size):
                 q_ij = observation[j][0] - observation[i][0]
                 if np.linalg.norm(q_ij) <= self.R:
-                    observation[i][j] = self.state[j]
-            observation[i][self.size][0] = self.vlq
-            observation[i][self.size][1] = self.vlp
+                    # observation[i][j] = self.state[j]
+                    observation[i][j] = self.state[j] - self.state[i]
+            observation[i][self.size][0] = self.vlq -self.state[i][0]
+            observation[i][self.size][1] = self.vlp -self.state[i][1]
         '''
         p_r = np.zeros(self.size, np.float32)
         c_r = np.zeros(self.size, np.float32)
@@ -223,7 +227,7 @@ class FlockingEnv(gym.Env):
             for j in range(0, self.size):
                 q_ij = self.state[j][0] - self.state[i][0]
                 p_r[i] += self.osr.potential_reward(q_ij)
-                if np.linalg.norm(q_ij) <= self.R:
+                if i !=j and np.linalg.norm(q_ij) <= self.R:
                     p_ij = self.state[j][1] - self.state[i][1]
                     c_r[i] += self.osr.consensus_reward(p_ij)
             q = self.state[i][0] - self.vlq
