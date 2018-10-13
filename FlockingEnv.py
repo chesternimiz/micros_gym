@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 potential_force=[]
 potential = []
 
-class OSReward:
+
+class OScost:
     def __init__(self, num, r=25, d=20, col_dist=0.1,  h=0.2, a=5, b=5):
         self.size=num
         self.R = r
@@ -49,7 +50,7 @@ class OSReward:
             start -= 1
         print("potential backward finished with", 0, potential[0])
 
-    def potential_reward(self,q_ij):
+    def potential_cost(self,q_ij): #smaller better
         re = 0
         z = self.segma_norm(q_ij)
         '''
@@ -72,13 +73,13 @@ class OSReward:
             re = potential[int(z/self.potential_step)]
         else:
             re = potential[int(self.r_alpha/self.potential_step)]
-        return -re
+        return re
 
-    def consensus_reward(self,p_ij):
-        return -0.5*np.linalg.norm(p_ij)
+    def consensus_cost(self,p_ij):
+        return 0.5*np.linalg.norm(p_ij)
 
-    def vl_reward(self,p,q):
-        return -0.5*np.linalg.norm(q)-0.5*np.linalg.norm(p)
+    def vl_cost(self,p,q):
+        return 0.5*np.linalg.norm(q)+0.5*np.linalg.norm(p)
 
     def segma_norm(self, q_ij):
         re = (math.sqrt(0.1*(q_ij[0]*q_ij[0]+q_ij[1]*q_ij[1])+1)-1)/0.1
@@ -121,12 +122,12 @@ class FlockingEnv(gym.Env):
         plt.ion()
         self.fig = plt.figure().add_subplot(1, 1, 1)
         self.fig.axis("equal")
-        self.osr = OSReward(self.size)
+        self.osr = OScost(self.size)
         self.vlq=np.array([100.,100.])
         self.vlp=np.array([1.,1.])
         self.osr.calculate_potential()
         self.dynamic = dynamic
-        self.last_reward = None
+        self.last_cost = None
 
     def reset(self):
         self.state_pos = np.random.uniform(low=0, high=200, size=(self.size, 2))
@@ -141,13 +142,13 @@ class FlockingEnv(gym.Env):
         observation = np.zeros((self.size,self.size+1, 2, 2),dtype=np.float32)
         for i in range(0,self.size):
             for j in range(0,self.size):
-                q_ij = observation[j][0] - observation[i][0]
+                q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) <= self.R:
                     # observation[i][j] = self.state[j] !
                     observation[i][j] = self.state[j]-self.state[i]
             observation[i][self.size][0] = self.vlq-self.state[i][0]
             observation[i][self.size][1] = self.vlp-self.state[i][1]
-        self.last_reward = self.get_reward()
+        self.last_cost = self.get_cost()
         self.vlq = np.array([100., 100.])
         print("reset vl q=",self.vlq,"p=",self.vlp)
         return observation
@@ -175,12 +176,12 @@ class FlockingEnv(gym.Env):
             for j in range(0, self.size):
                 q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) <= self.R:
-                    p_r[i]+=self.osr.potential_reward(q_ij)
+                    p_r[i]+=self.osr.potential_cost(q_ij)
                     p_ij=self.state[j][1] - self.state[i][1]
-                    c_r[i]+=self.osr.consensus_reward(p_ij)
+                    c_r[i]+=self.osr.consensus_cost(p_ij)
             q=self.state[i][0]-self.vlq
             p=self.state[i][0]-self.vlp
-            v_r[i]=self.osr.vl_reward(p,q)
+            v_r[i]=self.osr.vl_cost(p,q)
         print(p_r.sum(),c_r.sum(),v_r.sum(),p_r.sum()+c_r.sum()+v_r.sum())
         '''
         return np.array(self.state)
@@ -191,7 +192,7 @@ class FlockingEnv(gym.Env):
         observation = np.zeros((self.size, self.size+1, 2, 2),dtype=np.float32)
         for i in range(0, self.size):
             for j in range(0, self.size):
-                q_ij = observation[j][0] - observation[i][0]
+                q_ij = self.state[j][0] - self.state[i][0]
                 if np.linalg.norm(q_ij) <= self.R:
                     # observation[i][j] = self.state[j]
                     observation[i][j] = self.state[j] - self.state[i]
@@ -204,37 +205,39 @@ class FlockingEnv(gym.Env):
         for i in range(0, self.size):
             for j in range(0, self.size):
                 q_ij = self.state[j][0] - self.state[i][0]
-                p_r[i] += self.osr.potential_reward(q_ij)
+                p_r[i] += self.osr.potential_cost(q_ij)
                 if np.linalg.norm(q_ij) <= self.R:
                     p_ij = self.state[j][1] - self.state[i][1]
-                    c_r[i] += self.osr.consensus_reward(p_ij)
+                    c_r[i] += self.osr.consensus_cost(p_ij)
             q = self.state[i][0] - self.vlq
             p = self.state[i][0] - self.vlp
-            v_r[i] = self.osr.vl_reward(p, q)
+            v_r[i] = self.osr.vl_cost(p, q)
         '''
-        new_reward = self.get_reward()
-        reward = new_reward - self.last_reward
-        self.last_reward = new_reward
-        # print(p_r.sum(), c_r.sum(), v_r.sum(), reward.sum())
-        info=new_reward.sum()
+        new_cost = self.get_cost() # smaller better
+        reward = -new_cost + self.last_cost
+        self.last_cost = new_cost
+        # print(p_r.sum(), c_r.sum(), v_r.sum(), cost.sum())
+        info=new_cost.sum()
         return observation,reward,False,info
 
-    def get_reward(self):
+    def get_cost(self):
         p_r = np.zeros(self.size, np.float32)
         c_r = np.zeros(self.size, np.float32)
         v_r = np.zeros(self.size, np.float32)
         for i in range(0, self.size):
             for j in range(0, self.size):
+                if i == j:
+                    continue
                 q_ij = self.state[j][0] - self.state[i][0]
-                p_r[i] += self.osr.potential_reward(q_ij)
-                if i !=j and np.linalg.norm(q_ij) <= self.R:
+                p_r[i] += self.osr.potential_cost(q_ij)
+                if np.linalg.norm(q_ij) <= self.R:
                     p_ij = self.state[j][1] - self.state[i][1]
-                    c_r[i] += self.osr.consensus_reward(p_ij)
+                    c_r[i] += self.osr.consensus_cost(p_ij)
             q = self.state[i][0] - self.vlq
-            p = self.state[i][0] - self.vlp
-            v_r[i] = self.osr.vl_reward(p, q)
-        reward = p_r + c_r + v_r
-        return reward
+            p = self.state[i][1] - self.vlp
+            v_r[i] = self.osr.vl_cost(p, q)
+        cost = p_r + c_r + v_r
+        return cost
 
     def simple_plot(self):
 
