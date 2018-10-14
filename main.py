@@ -1,5 +1,4 @@
 import numpy as np
-import gym
 import FlockingEnv as fe
 
 from ddpg_agent import DDPGAgent, MINI_BATCH_SIZE
@@ -32,7 +31,7 @@ def main():
     agent = DDPGAgent(ob_shape=num_states, ac_shape=dim)
     #    agents.append(agent)
     # Exploration noise generator which uses Ornstein-Uhlenbeck process.
-    noise = OUNoise(dim)
+    noise = OUNoise(1)
 
     for i in range(episodes_num):
         print("--------Episode %d--------" % i)
@@ -48,7 +47,13 @@ def main():
             # get individual ob states here
             for k in range(0, size1):
                 ac = agent.feed_forward_actor(np.reshape(state[k], [1, num_states]))
-                action[k]=ac + noise.generate()
+                # print(noise.generate())
+                if i%2 == 0:
+                    action[k][0]=ac[0][0]  + noise.generate()
+                    action[k][1]=ac[0][1]  + noise.generate()
+                else:
+                    action[k][0] = ac[0][0] + noise.generate()
+                    action[k][1] = ac[0][1] + noise.generate()
 
             # Throw action to environment
             observation, reward, done, info = env.step_mul(action)
@@ -64,6 +69,7 @@ def main():
 
             if j % 100 == 0:
                 print(j,"step finished. reward=",reward_per_episode,"info=",info)
+                # print("action=",action,"observation=",observation)
             if (done or j == steps_limit -1):
                 print("Steps count: %d" % j)
                 print("Total reward: %d" % reward_per_episode)

@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class OUNoise:
     def __init__(self, num_actions, mu=0, theta=0.15, sigma=0.2, delta=0.5):
         self.num_actions = num_actions

@@ -1,5 +1,3 @@
-import gym
-import gym.spaces as spaces
 import numpy as np
 import math
 import matplotlib
@@ -79,7 +77,7 @@ class OScost:
         return 0.5*np.linalg.norm(p_ij)
 
     def vl_cost(self,p,q):
-        return 0.5*np.linalg.norm(q)+0.5*np.linalg.norm(p)
+        return 0.5*np.linalg.norm(q)*np.linalg.norm(q)+0.5*np.linalg.norm(p)*np.linalg.norm(p)
 
     def segma_norm(self, q_ij):
         re = (math.sqrt(0.1*(q_ij[0]*q_ij[0]+q_ij[1]*q_ij[1])+1)-1)/0.1
@@ -106,15 +104,12 @@ class OScost:
     def segma_1(self, z):
         return z / math.sqrt(1+z*z)
 
-class FlockingEnv(gym.Env):
+class FlockingEnv:
     def __init__(self, num, r=25, speedup=1, col_dist=0.1, dynamic="second"):
         self.size = num
         self.R = r
         self.col_dist = col_dist
         self.speedup = speedup
-        self.action_space = \
-            spaces.Box(low=-1000, high=1000, shape=[num, 2], dtype=np.float32)
-        self.observation_space = spaces.Box(low=-1000, high=1000, shape=[num, 2, 2], dtype=np.float32)
         self.state_pos = None
         self.state_vel = None
         self.state = np.zeros((num, 2, 2), dtype=np.float32)
