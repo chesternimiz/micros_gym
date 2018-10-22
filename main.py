@@ -8,7 +8,7 @@ from ou_noise import OUNoise
 # parameters
 episodes_num = 20000
 is_movie_on = False
-size1 = 50
+size1 = 5
 dim = 2
 steps_limit = 1000
 
@@ -17,7 +17,7 @@ def main():
     env = fe.FlockingEnv(size1,dynamic="first")
 
     # Get environment specs
-    num_states = (size1+1) * dim * 2 #TODO
+    num_states = (size1+1) * dim * 2
     num_actions = size1 *dim
 
     # Print specs
@@ -36,8 +36,8 @@ def main():
     for i in range(episodes_num):
         print("--------Episode %d--------" % i)
         reward_per_episode = 0
-        #observation = env.reset_mul()
-        observation = env.reset()
+        observation = env.reset_mul()
+        #observation = env.reset_full()
 
         for j in range(steps_limit):
             if is_movie_on: env.render()
@@ -45,6 +45,7 @@ def main():
             # Select action off-policy
             state = observation
             action = np.zeros((size1,dim),dtype = np.float32)
+
             # get individual ob states here
             for k in range(0, size1):
                 ac = agent.feed_forward_actor(np.reshape(state[k], [1, num_states]))
@@ -55,16 +56,24 @@ def main():
                 else:
                     action[k][0] = ac[0][0] + noise.generate()
                     action[k][1] = ac[0][1] + noise.generate()
-
+            '''
+            action = agent.feed_forward_actor(np.reshape(state, [1, num_states]))
+            action = np.reshape(action, [size1,dim])
+            for k in range(0, size1):
+                if i % 2 == 0:
+                    action[k][0] += noise.generate()
+                    action[k][1] += noise.generate()
+            '''
             # Throw action to environment
-            #observation, reward, done, info = env.step_mul(action)
-            observation, reward, done, info = env.step(action)
+            observation, reward, done, info = env.step_mul(action)
+            #observation, reward, done, info = env.step_full(action)
 
-            #for k in range(0,size1):
-            #    agent.add_experience(np.reshape(state[k], [num_states]), action[k],
-            #                                    np.reshape(observation[k], [ num_states]), reward[k], done)
-            agent.add_experience(np.reshape(state, [num_states]), action,
-                                            np.reshape(observation, [ num_states]), reward, done)
+            for k in range(0,size1):
+                agent.add_experience(np.reshape(state[k], [num_states]), action[k],
+                                                np.reshape(observation[k], [ num_states]), reward[k], done)
+            #action=np.reshape(action,[num_actions])
+            #agent.add_experience(np.reshape(state, [num_states]), action,
+            #                                np.reshape(observation, [ num_states]), reward, done)
 
             # Train actor/critic network
             if len(agent.replay_buffer) > MINI_BATCH_SIZE: agent.train()

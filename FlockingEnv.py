@@ -138,6 +138,7 @@ class FlockingEnv:
     def reset_mul(self):
         self.reset()
         observation = np.zeros((self.size,self.size+1, 2, 2),dtype=np.float32)
+        self.vlq = np.array([100., 100.])
         for i in range(0,self.size):
             for j in range(0,self.size):
                 q_ij = self.state[j][0] - self.state[i][0]
@@ -147,7 +148,19 @@ class FlockingEnv:
             observation[i][self.size][0] = self.vlq-self.state[i][0]
             observation[i][self.size][1] = self.vlp-self.state[i][1]
         self.last_cost = self.get_cost()
+
+        print("reset vl q=",self.vlq,"p=",self.vlp)
+        return observation
+
+    def reset_full(self):
+        self.reset()
+        observation = np.zeros((self.size+1, 2, 2),dtype=np.float32)
         self.vlq = np.array([100., 100.])
+        for i in range(0,self.size):
+            observation[i] = self.state[i]
+        observation[self.size][0] = self.vlq
+        observation[self.size][1] = self.vlp
+        self.last_cost = self.get_cost()
         print("reset vl q=",self.vlq,"p=",self.vlp)
         return observation
 
@@ -182,13 +195,7 @@ class FlockingEnv:
             v_r[i]=self.osr.vl_cost(p,q)
         print(p_r.sum(),c_r.sum(),v_r.sum(),p_r.sum()+c_r.sum()+v_r.sum())
         '''
-        new_cost = self.get_cost()  # smaller better
-        reward = -new_cost + self.last_cost
-        self.last_cost = new_cost
-        # print(p_r.sum(), c_r.sum(), v_r.sum(), cost.sum())
-        info = new_cost.sum()
-        reward = reward.sum()
-        return np.array(self.state),reward,False,info
+        return np.array(self.state)
 
     def step_mul(self, action2):
         self.step(action2)
@@ -224,6 +231,22 @@ class FlockingEnv:
         info=new_cost.sum()
         return observation,reward,False,info
 
+    def step_full(self,action3):
+        self.step(action3)
+        self.vlq += self.vlp * self.delta_t
+        observation = np.zeros((self.size + 1, 2, 2), dtype=np.float32)
+        for i in range(0, self.size):
+            observation[i] = self.state[i]
+        observation[self.size][0] = self.vlq
+        observation[self.size][1] = self.vlp
+        new_cost = self.get_cost()  # smaller better
+        reward = -new_cost + self.last_cost
+        self.last_cost = new_cost
+        # print(p_r.sum(), c_r.sum(), v_r.sum(), cost.sum())
+        info = new_cost.sum()
+        reward = reward.sum()
+        return observation, reward, False, info
+
     def get_cost(self):
         p_r = np.zeros(self.size, np.float32)
         c_r = np.zeros(self.size, np.float32)
@@ -240,7 +263,7 @@ class FlockingEnv:
             q = self.state[i][0] - self.vlq
             p = self.state[i][1] - self.vlp
             v_r[i] = self.osr.vl_cost(p, q)
-        cost = p_r + c_r + v_r
+        cost = p_r*10. + c_r + v_r
         return cost
 
     def simple_plot(self):
