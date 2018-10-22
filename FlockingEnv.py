@@ -130,6 +130,9 @@ class FlockingEnv:
         for i in range(0, self.size):
             self.state[i][0] = self.state_pos[i]
             self.state[i][1] = self.state_vel[i]
+        self.last_cost = self.get_cost()
+        self.vlq = np.array([100., 100.])
+        print("reset vl q=", self.vlq, "p=", self.vlp)
         return np.array(self.state)
 
     def reset_mul(self):
@@ -179,7 +182,13 @@ class FlockingEnv:
             v_r[i]=self.osr.vl_cost(p,q)
         print(p_r.sum(),c_r.sum(),v_r.sum(),p_r.sum()+c_r.sum()+v_r.sum())
         '''
-        return np.array(self.state)
+        new_cost = self.get_cost()  # smaller better
+        reward = -new_cost + self.last_cost
+        self.last_cost = new_cost
+        # print(p_r.sum(), c_r.sum(), v_r.sum(), cost.sum())
+        info = new_cost.sum()
+        reward = reward.sum()
+        return np.array(self.state),reward,False,info
 
     def step_mul(self, action2):
         self.step(action2)

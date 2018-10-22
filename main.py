@@ -17,7 +17,7 @@ def main():
     env = fe.FlockingEnv(size1,dynamic="first")
 
     # Get environment specs
-    num_states = (size1+1) * dim * 2
+    num_states = (size1+1) * dim * 2 #TODO
     num_actions = size1 *dim
 
     # Print specs
@@ -36,7 +36,8 @@ def main():
     for i in range(episodes_num):
         print("--------Episode %d--------" % i)
         reward_per_episode = 0
-        observation = env.reset_mul()
+        #observation = env.reset_mul()
+        observation = env.reset()
 
         for j in range(steps_limit):
             if is_movie_on: env.render()
@@ -56,11 +57,14 @@ def main():
                     action[k][1] = ac[0][1] + noise.generate()
 
             # Throw action to environment
-            observation, reward, done, info = env.step_mul(action)
+            #observation, reward, done, info = env.step_mul(action)
+            observation, reward, done, info = env.step(action)
 
-            for k in range(0,size1):
-                agent.add_experience(np.reshape(state[k], [num_states]), action[k],
-                                                np.reshape(observation[k], [ num_states]), reward[k], done)
+            #for k in range(0,size1):
+            #    agent.add_experience(np.reshape(state[k], [num_states]), action[k],
+            #                                    np.reshape(observation[k], [ num_states]), reward[k], done)
+            agent.add_experience(np.reshape(state, [num_states]), action,
+                                            np.reshape(observation, [ num_states]), reward, done)
 
             # Train actor/critic network
             if len(agent.replay_buffer) > MINI_BATCH_SIZE: agent.train()
